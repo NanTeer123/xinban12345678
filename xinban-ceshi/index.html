@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 工作台</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="page-header">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white;">鑫</div>
+          <div>
+            <div style="font-size: 18px; font-weight: bold;">鑫办</div>
+            <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">智能办公协作平台</div>
+          </div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">退出</button>
+      </div>
+
+      <div class="user-card">
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold;" id="userAvatar">?</div>
+        <div style="flex: 1;">
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 3px;" id="userName">用户</div>
+          <div style="font-size: 12px; opacity: 0.9;" id="userRole">普通员工</div>
+        </div>
+        <div style="font-size: 13px; opacity: 0.9;" id="currentDate">日期</div>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-icon check-in" id="checkInIcon">○</div>
+        <div class="stat-label">今日打卡</div>
+        <div class="stat-value" id="todayCheck">未打卡</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon pending">📝</div>
+        <div class="stat-label">待审批</div>
+        <div class="stat-value" id="pendingCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon notification">📢</div>
+        <div class="stat-label">新公告</div>
+        <div class="stat-value" id="noticeCount">0</div>
+      </div>
+    </div>
+
+    <!-- 快捷功能 -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">快捷功能</div>
+      </div>
+      <div class="quick-grid">
+        <div class="quick-item" onclick="location.href='attendance.html'">
+          <div class="quick-icon check" style="background: #e6f7ff;">📋</div>
+          <div class="quick-content">
+            <div class="quick-title">考勤打卡</div>
+            <div class="quick-desc">每日考勤记录</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+        <div class="quick-item" onclick="location.href='approval.html'">
+          <div class="quick-icon approval" style="background: #fff7e6;">✏️</div>
+          <div class="quick-content">
+            <div class="quick-title">发起审批</div>
+            <div class="quick-desc">申请审批流程</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+        <div class="quick-item" onclick="location.href='chat.html'">
+          <div class="quick-icon chat" style="background: #f6ffed;">💬</div>
+          <div class="quick-content">
+            <div class="quick-title">内部群聊</div>
+            <div class="quick-desc">团队沟通协作</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+        <div class="quick-item" onclick="location.href='notice.html'">
+          <div class="quick-icon notice" style="background: #fff1f0;">📢</div>
+          <div class="quick-content">
+            <div class="quick-title">企业公告</div>
+            <div class="quick-desc">最新通知动态</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+        <div class="quick-item" onclick="location.href='contacts.html'">
+          <div class="quick-icon contacts" style="background: #f9f0ff;">👥</div>
+          <div class="quick-content">
+            <div class="quick-title">通讯录</div>
+            <div class="quick-desc">企业组织架构</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+        <div class="quick-item" onclick="location.href='attendance.html'">
+          <div class="quick-icon" style="background: #e6fffb; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;">📁</div>
+          <div class="quick-content">
+            <div class="quick-title">文件网盘</div>
+            <div class="quick-desc">共享文件管理</div>
+          </div>
+          <div style="font-size: 16px; color: #ccc;">›</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最近公告 -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">最近公告</div>
+        <div class="section-more" onclick="location.href='notice.html'">查看全部 ›</div>
+      </div>
+      <div class="notice-list" id="noticeList">
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar">
+    <a href="index.html" class="tab-item active">
+      <div style="font-size: 22px; line-height: 1;">🏠</div>
+      <div style="font-size: 11px; margin-top: 2px;">工作台</div>
+    </a>
+    <a href="attendance.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">📋</div>
+      <div style="font-size: 11px; margin-top: 2px;">考勤</div>
+    </a>
+    <a href="approval.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">✏️</div>
+      <div style="font-size: 11px; margin-top: 2px;">审批</div>
+    </a>
+    <a href="contacts.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">👥</div>
+      <div style="font-size: 11px; margin-top: 2px;">通讯录</div>
+    </a>
+    <a href="chat.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">💬</div>
+      <div style="font-size: 11px; margin-top: 2px;">消息</div>
+    </a>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!Session.isLoggedIn()) {
+      window.location.href = 'login.html';
+    }
+
+    const user = Session.getCurrentUser();
+    if (!user) {
+      Session.logout();
+      window.location.href = 'login.html';
+    }
+
+    // 显示用户信息
+    document.getElementById('userAvatar').textContent = user.name.charAt(0);
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userRole').textContent = `${user.roleName} · ${user.department}`;
+    document.getElementById('currentDate').textContent = Utils.getTodayDate();
+
+    // 加载统计数据
+    function loadStats() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // 今日打卡状态
+      const clockRecords = DB.clock.getByUserId(user._id);
+      const todayRecords = clockRecords.filter(r => {
+        const rDate = new Date(r.createTime);
+        return rDate >= today && rDate <= endOfDay;
+      });
+      if (todayRecords.length > 0) {
+        document.getElementById('todayCheck').textContent = '已完成';
+        document.getElementById('checkInIcon').textContent = '✓';
+      }
+
+      // 待审批数量
+      let pendingCount = 0;
+      const approvals = DB.approval.getAll();
+      if (user.role === 'super_admin') {
+        pendingCount = approvals.filter(a => a.status === 'pending').length;
+      } else if (user.role === 'dept_admin') {
+        pendingCount = approvals.filter(a => a.status === 'pending' && a.department === user.department).length;
+      }
+      document.getElementById('pendingCount').textContent = pendingCount;
+
+      // 公告数量
+      const notices = DB.notice.getAll();
+      document.getElementById('noticeCount').textContent = notices.length;
+    }
+
+    // 加载公告
+    function loadNotices() {
+      const notices = DB.notice.getAll().slice(0, 3);
+      const listEl = document.getElementById('noticeList');
+      if (notices.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 30px 20px; text-align: center; border: 2px dashed #e8e8e8; border-radius: 8px; background: white;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">📢</div>
+            <div style="font-size: 14px; color: #999;">暂无公告</div>
+          </div>`;
+        return;
+      }
+      listEl.innerHTML = notices.map(n => `
+        <div style="padding: 12px; border-bottom: 1px solid #f0f0f0;">
+          <div style="font-size: 14px; color: #333; margin-bottom: 4px; line-height: 1.5;">${n.content}</div>
+          <div style="font-size: 12px; color: #999;">${n.publisher} · ${Utils.formatDate(n.createTime)}</div>
+        </div>
+      `).join('');
+    }
+
+    // 退出登录
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      Utils.showConfirm('确认退出', '确定要退出登录吗？', () => {
+        Session.logout();
+        window.location.href = 'login.html';
+      });
+    });
+
+    loadStats();
+    loadNotices();
+  </script>
+</body>
+</html>

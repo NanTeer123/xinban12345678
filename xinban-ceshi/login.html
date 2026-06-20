@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 登录</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(180deg, #1890ff 0%, #096dd9 100%);
+    }
+    .login-container {
+      min-height: 100vh;
+      padding: 40px 15px 20px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .login-logo-section {
+      text-align: center;
+      padding-bottom: 30px;
+    }
+    .login-logo-box {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 15px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: bold;
+      color: white;
+    }
+    .login-app-name {
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 6px;
+    }
+    .login-app-slogan {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .login-form-section {
+      background: white;
+      border-radius: 20px 20px 0 0;
+      padding: 25px 20px;
+      margin: auto -15px -20px;
+      flex: 1;
+    }
+    .login-tabs {
+      display: flex;
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 25px;
+    }
+    .login-tab {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      font-size: 15px;
+      color: #666;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+    .login-tab.active {
+      background: #1890ff;
+      color: white;
+      font-weight: bold;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-input {
+      width: 100%;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 15px;
+      background: #fafafa;
+      outline: none;
+      box-sizing: border-box;
+      transition: all 0.3s;
+    }
+    .form-input:focus {
+      border-color: #1890ff;
+      background: white;
+    }
+    .form-select {
+      width: 100%;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 15px;
+      background: #fafafa;
+      outline: none;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      padding: 14px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 500;
+      margin-top: 10px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .form-switch {
+      text-align: center;
+      margin-top: 15px;
+      color: #999;
+      font-size: 13px;
+    }
+    .form-switch a {
+      color: #1890ff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .test-info {
+      margin-top: 25px;
+      padding: 15px;
+      background: #fffbe6;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #666;
+      border-left: 3px solid #faad14;
+    }
+    .test-info .test-title {
+      font-weight: bold;
+      color: #d48806;
+      margin-bottom: 8px;
+    }
+    .test-info .test-item {
+      margin-bottom: 4px;
+      line-height: 1.6;
+    }
+    .reset-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      color: #999;
+      border: 1px dashed #e8e8e8;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .reset-btn:hover { color: #1890ff; border-color: #1890ff; }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-logo-section">
+      <div class="login-logo-box">鑫</div>
+      <div class="login-app-name">鑫办</div>
+      <div class="login-app-slogan">智能办公协作平台</div>
+    </div>
+
+    <div class="login-form-section">
+      <!-- 登录表单 -->
+      <div id="loginForm">
+        <div class="login-tabs">
+          <div class="login-tab active" id="tabLogin">登录</div>
+          <div class="login-tab" id="tabRegister">注册</div>
+        </div>
+
+        <div class="form-group">
+          <input type="text" id="loginUsername" class="form-input" placeholder="请输入账号" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <input type="password" id="loginPassword" class="form-input" placeholder="请输入密码" autocomplete="current-password" />
+        </div>
+        <button class="btn-primary" id="loginBtn">登录</button>
+
+        <div class="test-info">
+          <div class="test-title">🎯 测试账号（密码均为 123456）</div>
+          <div class="test-item">• 超级管理员：admin</div>
+          <div class="test-item">• 部门管理员：manager</div>
+          <div class="test-item">• 普通员工：employee</div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">🔄 数据异常？点击重置测试数据</button>
+      </div>
+
+      <!-- 注册表单 -->
+      <div id="registerForm" style="display: none;">
+        <div class="login-tabs">
+          <div class="login-tab" id="tabLogin2">登录</div>
+          <div class="login-tab active" id="tabRegister2">注册</div>
+        </div>
+
+        <div class="form-group">
+          <input type="text" id="regUsername" class="form-input" placeholder="请输入账号" />
+        </div>
+        <div class="form-group">
+          <input type="password" id="regPassword" class="form-input" placeholder="请输入密码" />
+        </div>
+        <div class="form-group">
+          <input type="text" id="regName" class="form-input" placeholder="请输入姓名" />
+        </div>
+        <div class="form-group">
+          <select id="regDepartment" class="form-select">
+            <option value="">请选择所属部门</option>
+          </select>
+        </div>
+        <button class="btn-primary" id="registerBtn">注册</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    // ============ 确保数据初始化（最严格校验）============
+    (function ensureData() {
+      // 先执行一次初始化
+      DB.init();
+      // 双重校验：确保默认测试账号一定存在
+      const data = DB.getAll();
+      const hasAdmin = data.users.some(u => u.username === 'admin');
+      const hasManager = data.users.some(u => u.username === 'manager');
+      const hasEmployee = data.users.some(u => u.username === 'employee');
+      if (!hasAdmin || !hasManager || !hasEmployee) {
+        console.log('[Login] 测试账号不完整，强制重置:', { hasAdmin, hasManager, hasEmployee });
+        DB.reset();
+      }
+      // 清除过期登录状态（登录页每次访问都清除旧登录状态）
+      Session.logout();
+      console.log('[Login] 当前用户数:', DB.users.getAll().length);
+      console.log('[Login] 可用账号:', DB.users.getAll().map(u => u.username).join(', '));
+    })();
+
+    // ============ 加载部门到下拉列表 ============
+    function loadDepartments() {
+      const depts = DB.departments.getAll();
+      const select = document.getElementById('regDepartment');
+      // 清空并保留默认项
+      select.innerHTML = '<option value="">请选择所属部门</option>';
+      depts.forEach(dept => {
+        if (dept.name !== '系统管理部') {
+          const option = document.createElement('option');
+          option.value = dept.name;
+          option.textContent = dept.name;
+          select.appendChild(option);
+        }
+      });
+    }
+    loadDepartments();
+
+    // ============ 切换登录/注册 ============
+    function showLogin() {
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('registerForm').style.display = 'none';
+    }
+    function showRegister() {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'block';
+    }
+
+    document.getElementById('tabLogin').addEventListener('click', showLogin);
+    document.getElementById('tabRegister').addEventListener('click', showRegister);
+    document.getElementById('tabLogin2').addEventListener('click', showLogin);
+    document.getElementById('tabRegister2').addEventListener('click', showRegister);
+
+    // ============ 登录逻辑 ============
+    document.getElementById('loginBtn').addEventListener('click', function() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      console.log('[Login] 尝试登录:', username, '密码长度:', password.length);
+      console.log('[Login] 数据库当前用户:', DB.users.getAll().map(u => u.username + '(' + u.role + ')').join(', '));
+
+      if (!username) {
+        Utils.showToast('请输入账号');
+        return;
+      }
+      if (!password) {
+        Utils.showToast('请输入密码');
+        return;
+      }
+
+      // 查询用户（支持小写匹配，容错输入）
+      let user = DB.users.getByUsername(username);
+      if (!user) {
+        const allUsers = DB.users.getAll();
+        user = allUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+      }
+
+      if (!user) {
+        console.log('[Login] 用户不存在:', username);
+        Utils.showToast('账号不存在，请先注册或点击下方重置数据');
+        return;
+      }
+
+      // 用户存在 - 检查密码
+      if (user.password === password) {
+        console.log('[Login] ✓ 登录成功:', user.name, user.roleName);
+        // 登录前清除旧状态
+        Session.logout();
+        Session.setCurrentUser(user);
+        Utils.showToast('登录成功，欢迎 ' + user.name);
+
+        setTimeout(function() {
+          console.log('[Login] 跳转到工作台');
+          window.location.href = 'index.html';
+        }, 1000);
+      } else {
+        console.log('[Login] ✗ 密码错误，输入:', password, '正确:', user.password);
+        Utils.showToast('密码错误，请重新输入');
+      }
+    });
+
+    // 回车键登录
+    document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('loginBtn').click();
+      }
+    });
+    document.getElementById('loginUsername').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('loginPassword').focus();
+      }
+    });
+
+    // ============ 注册逻辑 ============
+    document.getElementById('registerBtn').addEventListener('click', function() {
+      const username = document.getElementById('regUsername').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const name = document.getElementById('regName').value.trim();
+      const department = document.getElementById('regDepartment').value;
+
+      if (!username) { Utils.showToast('请输入账号'); return; }
+      if (!password) { Utils.showToast('请输入密码'); return; }
+      if (!name) { Utils.showToast('请输入姓名'); return; }
+      if (!department) { Utils.showToast('请选择部门'); return; }
+
+      // 检查账号是否已存在
+      const existing = DB.users.getByUsername(username);
+      if (existing) {
+        Utils.showToast('该账号已存在');
+        return;
+      }
+
+      // 创建新用户（默认为普通员工）
+      const newUser = DB.users.add({
+        username: username,
+        password: password,
+        name: name,
+        department: department,
+        role: 'employee',
+        roleName: '普通员工'
+      });
+
+      if (newUser) {
+        Utils.showToast('注册成功，请登录');
+        setTimeout(function() {
+          showLogin();
+          document.getElementById('loginUsername').value = username;
+          document.getElementById('loginPassword').value = '';
+        }, 1000);
+      } else {
+        Utils.showToast('注册失败，请重试');
+      }
+    });
+
+    // ============ 重置数据按钮 ============
+    document.getElementById('resetBtn').addEventListener('click', function() {
+      Utils.showConfirm('重置数据', '这将清除所有本地数据并恢复默认测试账号，确定吗？', function() {
+        DB.reset();
+        Session.logout();
+        Utils.showToast('数据已重置，请重新登录');
+        setTimeout(function() {
+          location.reload();
+        }, 800);
+      });
+    });
+  </script>
+</body>
+</html>

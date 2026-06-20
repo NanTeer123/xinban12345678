@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 审批中心</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="page-title-bar">
+      <div class="page-title">审批中心</div>
+      <button class="header-action-btn" id="addApprovalBtn">发起审批</button>
+    </div>
+
+    <!-- 标签栏 -->
+    <div style="display: flex; background: white; padding: 8px; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin: 15px; border-radius: 8px;">
+      <div class="tab-item active" data-tab="all" style="flex: 1; text-align: center; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; background: #1890ff; color: white; font-weight: bold;">全部</div>
+      <div class="tab-item" data-tab="pending" style="flex: 1; text-align: center; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; color: #666;">待我审批</div>
+      <div class="tab-item" data-tab="mine" style="flex: 1; text-align: center; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; color: #666;">我发起</div>
+      <div class="tab-item" data-tab="done" style="flex: 1; text-align: center; padding: 10px; font-size: 13px; border-radius: 6px; cursor: pointer; color: #666;">已办结</div>
+    </div>
+
+    <!-- 审批列表 -->
+    <div style="padding: 0 15px 15px;" id="approvalList">
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar">
+    <a href="index.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">🏠</div>
+      <div style="font-size: 11px; margin-top: 2px;">工作台</div>
+    </a>
+    <a href="attendance.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">📋</div>
+      <div style="font-size: 11px; margin-top: 2px;">考勤</div>
+    </a>
+    <a href="approval.html" class="tab-item active">
+      <div style="font-size: 22px; line-height: 1;">✏️</div>
+      <div style="font-size: 11px; margin-top: 2px;">审批</div>
+    </a>
+    <a href="contacts.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">👥</div>
+      <div style="font-size: 11px; margin-top: 2px;">通讯录</div>
+    </a>
+    <a href="chat.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">💬</div>
+      <div style="font-size: 11px; margin-top: 2px;">消息</div>
+    </a>
+  </div>
+
+  <!-- 发起审批弹窗 -->
+  <div class="modal" id="approvalModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">发起审批</div>
+        <button class="modal-close" id="closeApprovalModal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">审批标题</label>
+        <input type="text" id="approvalTitle" class="form-input" placeholder="请输入审批标题" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">审批类型</label>
+        <select id="approvalType" class="form-select">
+          <option value="">请选择</option>
+          <option value="请假">请假申请</option>
+          <option value="报销">费用报销</option>
+          <option value="出差">出差申请</option>
+          <option value="采购">采购申请</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">详情说明</label>
+        <textarea id="approvalDetail" class="form-input" rows="4" placeholder="请输入详细说明"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">附件图片（可选）</label>
+        <input type="file" id="approvalImage" accept="image/*" class="form-input" style="padding: 8px;" />
+        <div class="upload-preview" id="approvalImagePreview"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelApprovalBtn">取消</button>
+        <button class="btn-primary" id="submitApprovalBtn">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!Session.isLoggedIn()) {
+      window.location.href = 'login.html';
+    }
+
+    const user = Session.getCurrentUser();
+    let currentTab = 'all';
+    let selectedImage = null;
+
+    // 切换标签
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-tab]').forEach(t => {
+          t.classList.remove('active');
+          t.style.background = 'transparent';
+          t.style.color = '#666';
+          t.style.fontWeight = 'normal';
+        });
+        tab.classList.add('active');
+        tab.style.background = '#1890ff';
+        tab.style.color = 'white';
+        tab.style.fontWeight = 'bold';
+        currentTab = tab.dataset.tab;
+        loadApprovals();
+      });
+    });
+
+    // 加载审批列表
+    function loadApprovals() {
+      let approvals = DB.approval.getAll();
+
+      // 根据权限和标签筛选
+      switch (currentTab) {
+        case 'pending':
+          if (user.role === 'super_admin') {
+            approvals = approvals.filter(a => a.status === 'pending');
+          } else if (user.role === 'dept_admin') {
+            approvals = approvals.filter(a => a.status === 'pending' && a.department === user.department);
+          } else {
+            approvals = approvals.filter(a => a.status === 'pending' && a.applicantId === user._id);
+          }
+          break;
+        case 'mine':
+          approvals = approvals.filter(a => a.applicantId === user._id);
+          break;
+        case 'done':
+          if (user.role === 'super_admin') {
+            approvals = approvals.filter(a => a.status !== 'pending');
+          } else if (user.role === 'dept_admin') {
+            approvals = approvals.filter(a => a.status !== 'pending' && a.department === user.department);
+          } else {
+            approvals = approvals.filter(a => a.status !== 'pending' && a.applicantId === user._id);
+          }
+          break;
+        case 'all':
+        default:
+          if (user.role === 'employee') {
+            approvals = approvals.filter(a => a.applicantId === user._id);
+          } else if (user.role === 'dept_admin') {
+            approvals = approvals.filter(a => a.department === user.department);
+          }
+          break;
+      }
+
+      const listEl = document.getElementById('approvalList');
+      if (approvals.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center; border: 2px dashed #e8e8e8; border-radius: 8px; background: white;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">📋</div>
+            <div style="font-size: 14px; color: #999;">暂无审批记录</div>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = approvals.map(a => {
+        let statusText = '待审批';
+        let statusStyle = 'background: #fff7e6; color: #faad14;';
+        if (a.status === 'approved') {
+          statusText = '已通过';
+          statusStyle = 'background: #f6ffed; color: #52c41a;';
+        } else if (a.status === 'rejected') {
+          statusText = '已驳回';
+          statusStyle = 'background: #fff1f0; color: #ff4d4f;';
+        }
+
+        // 判断是否显示审批按钮
+        const canApprove = a.status === 'pending' && (user.role === 'super_admin' || (user.role === 'dept_admin' && a.department === user.department));
+
+        return `
+          <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #1890ff, #096dd9); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0;">${a.applicantName ? a.applicantName.charAt(0) : '?'}</div>
+              <div style="flex: 1;">
+                <div style="font-size: 14px; font-weight: 500; color: #333;">${a.applicantName}</div>
+                <div style="font-size: 12px; color: #999; margin-top: 2px;">${a.department} · ${a.type || '审批'}</div>
+              </div>
+              <div style="padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; ${statusStyle}">${statusText}</div>
+            </div>
+            <div style="padding: 10px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; margin: 10px 0;">
+              <div style="font-size: 15px; font-weight: bold; color: #333; margin-bottom: 6px;">${a.title}</div>
+              <div style="font-size: 13px; color: #666; line-height: 1.6;">${a.detail || ''}</div>
+              ${a.image ? `<img src="${a.image}" style="width: 100%; max-width: 200px; border-radius: 6px; margin-top: 10px;" />` : ''}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 12px; color: #999;">${Utils.formatDateTime(a.createTime)}</div>
+              ${canApprove ? `
+                <div style="display: flex; gap: 8px;">
+                  <button onclick="approveItem('${a._id}', 'approved')" style="padding: 6px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; border: none; background: #52c41a; color: white;">通过</button>
+                  <button onclick="approveItem('${a._id}', 'rejected')" style="padding: 6px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; border: none; background: #ff4d4f; color: white;">驳回</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 审批操作
+    window.approveItem = function(id, status) {
+      const action = status === 'approved' ? '通过' : '驳回';
+      Utils.showConfirm('确认操作', `确定要${action}此审批吗？`, () => {
+        DB.approval.updateStatus(id, status);
+        Utils.showToast(`${action}成功`);
+        loadApprovals();
+
+        // 发送消息通知
+        const applicant = DB.users.getById(DB.approval.getAll().find(a => a._id === id).applicantId);
+        if (applicant) {
+          DB.messages.add('conv_all', {
+            roomId: 'conv_all',
+            senderId: user._id,
+            senderName: user.name,
+            content: `【系统通知】${user.name}已${action}您的审批：${DB.approval.getAll().find(a => a._id === id).title}`
+          });
+        }
+      });
+    };
+
+    // 发起审批弹窗
+    document.getElementById('addApprovalBtn').addEventListener('click', () => {
+      document.getElementById('approvalModal').style.display = 'flex';
+      document.getElementById('approvalTitle').value = '';
+      document.getElementById('approvalType').value = '';
+      document.getElementById('approvalDetail').value = '';
+      document.getElementById('approvalImagePreview').innerHTML = '';
+      selectedImage = null;
+    });
+
+    document.getElementById('closeApprovalModal').addEventListener('click', () => {
+      document.getElementById('approvalModal').style.display = 'none';
+    });
+
+    document.getElementById('cancelApprovalBtn').addEventListener('click', () => {
+      document.getElementById('approvalModal').style.display = 'none';
+    });
+
+    // 图片上传
+    document.getElementById('approvalImage').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        Utils.fileToBase64(file).then(base64 => {
+          selectedImage = base64;
+          document.getElementById('approvalImagePreview').innerHTML = `
+            <div style="position: relative;">
+              <img src="${base64}" style="width: 80px; height: 80px; border-radius: 6px; object-fit: cover;" />
+              <button onclick="removeImage()" style="position: absolute; top: -4px; right: -4px; background: #ff4d4f; color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;">×</button>
+            </div>
+          `;
+        });
+      }
+    });
+
+    window.removeImage = function() {
+      selectedImage = null;
+      document.getElementById('approvalImage').value = '';
+      document.getElementById('approvalImagePreview').innerHTML = '';
+    };
+
+    // 提交审批
+    document.getElementById('submitApprovalBtn').addEventListener('click', () => {
+      const title = document.getElementById('approvalTitle').value.trim();
+      const type = document.getElementById('approvalType').value;
+      const detail = document.getElementById('approvalDetail').value.trim();
+
+      if (!title) {
+        Utils.showToast('请输入审批标题');
+        return;
+      }
+      if (!type) {
+        Utils.showToast('请选择审批类型');
+        return;
+      }
+      if (!detail) {
+        Utils.showToast('请输入详情说明');
+        return;
+      }
+
+      DB.approval.add({
+        applicantId: user._id,
+        applicantName: user.name,
+        department: user.department,
+        title: title,
+        type: type,
+        detail: detail,
+        image: selectedImage
+      });
+
+      Utils.showToast('审批已提交');
+      document.getElementById('approvalModal').style.display = 'none';
+      loadApprovals();
+    });
+
+    loadApprovals();
+  </script>
+</body>
+</html>

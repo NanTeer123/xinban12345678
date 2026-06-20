@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 通讯录</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="page-title-bar">
+      <div class="page-title">通讯录</div>
+      <button class="header-action-btn" id="addBtn" style="display: none;">+ 添加</button>
+    </div>
+
+    <!-- 部门列表 -->
+    <div style="padding: 15px;" id="deptList">
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar">
+    <a href="index.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">🏠</div>
+      <div style="font-size: 11px; margin-top: 2px;">工作台</div>
+    </a>
+    <a href="attendance.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">📋</div>
+      <div style="font-size: 11px; margin-top: 2px;">考勤</div>
+    </a>
+    <a href="approval.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">✏️</div>
+      <div style="font-size: 11px; margin-top: 2px;">审批</div>
+    </a>
+    <a href="contacts.html" class="tab-item active">
+      <div style="font-size: 22px; line-height: 1;">👥</div>
+      <div style="font-size: 11px; margin-top: 2px;">通讯录</div>
+    </a>
+    <a href="chat.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">💬</div>
+      <div style="font-size: 11px; margin-top: 2px;">消息</div>
+    </a>
+  </div>
+
+  <!-- 添加部门弹窗 -->
+  <div class="modal" id="addDeptModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">添加部门</div>
+        <button class="modal-close" id="closeAddDeptModal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">部门名称</label>
+        <input type="text" id="newDeptName" class="form-input" placeholder="请输入部门名称" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelAddDept">取消</button>
+        <button class="btn-primary" id="submitAddDept">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加员工弹窗 -->
+  <div class="modal" id="addEmpModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">添加员工</div>
+        <button class="modal-close" id="closeAddEmpModal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">账号</label>
+        <input type="text" id="newEmpUsername" class="form-input" placeholder="请输入账号" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">密码</label>
+        <input type="password" id="newEmpPassword" class="form-input" placeholder="请输入密码" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">姓名</label>
+        <input type="text" id="newEmpName" class="form-input" placeholder="请输入姓名" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">所属部门</label>
+        <select id="newEmpDepartment" class="form-select"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">角色</label>
+        <select id="newEmpRole" class="form-select">
+          <option value="employee">普通员工</option>
+          <option value="dept_admin">部门管理员</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelAddEmp">取消</button>
+        <button class="btn-primary" id="submitAddEmp">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!Session.isLoggedIn()) {
+      window.location.href = 'login.html';
+    }
+
+    const user = Session.getCurrentUser();
+
+    // 超级管理员显示添加按钮
+    if (user.role === 'super_admin') {
+      document.getElementById('addBtn').style.display = 'block';
+    }
+
+    // 加载部门和员工
+    function loadDepartments() {
+      const depts = DB.departments.getAll();
+      const allUsers = DB.users.getAll();
+
+      let filteredDepts = depts;
+      let filteredUsers = allUsers;
+
+      // 部门管理员只能看到自己部门
+      if (user.role === 'dept_admin') {
+        filteredDepts = depts.filter(d => d.name === user.department);
+        filteredUsers = allUsers.filter(u => u.department === user.department);
+      }
+
+      // 普通员工只能看到自己部门
+      if (user.role === 'employee') {
+        filteredDepts = depts.filter(d => d.name === user.department);
+        filteredUsers = allUsers.filter(u => u.department === user.department);
+      }
+
+      const listEl = document.getElementById('deptList');
+      listEl.innerHTML = filteredDepts.map(dept => {
+        const deptUsers = filteredUsers.filter(u => u.department === dept.name);
+        return `
+          <div style="background: white; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+            <div class="dept-header" onclick="toggleDept('${dept._id}')" style="display: flex; align-items: center; padding: 12px 15px; cursor: pointer; background: #fafafa;">
+              <div style="width: 32px; height: 32px; border-radius: 6px; background: linear-gradient(135deg, #1890ff, #096dd9); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; margin-right: 10px; flex-shrink: 0;">🏢</div>
+              <div style="flex: 1; font-size: 15px; font-weight: bold; color: #333;">${dept.name}</div>
+              <div style="font-size: 12px; color: #999; margin-right: 8px;">${deptUsers.length}人</div>
+              ${user.role === 'super_admin' ? `<button onclick="event.stopPropagation(); addEmployee('${dept.name}')" style="padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #1890ff; background: white; color: #1890ff;">+员工</button>` : ''}
+              <div id="arrow-${dept._id}" style="font-size: 18px; color: #ccc; margin-left: 8px; transition: transform 0.3s;">›</div>
+            </div>
+            <div id="users-${dept._id}" style="display: none;">
+              ${deptUsers.map(u => `
+                <div style="display: flex; align-items: center; padding: 12px 15px; border-top: 1px solid #f0f0f0; gap: 12px; cursor: pointer;" onclick="startChat('${u._id}', '${u.name}')">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #722ed1, #9254de); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; font-weight: bold; flex-shrink: 0;">${u.name.charAt(0)}</div>
+                  <div style="flex: 1;">
+                    <div style="font-size: 14px; font-weight: 500; color: #333;">${u.name}</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 2px;">${u.roleName}</div>
+                  </div>
+                  <div style="font-size: 20px; color: #1890ff;">💬</div>
+                </div>
+              `).join('')}
+              ${deptUsers.length === 0 ? '<div style="padding: 20px; text-align: center; color: #999; font-size: 13px;">暂无员工</div>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (filteredDepts.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center; border: 2px dashed #e8e8e8; border-radius: 8px; background: white;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">👥</div>
+            <div style="font-size: 14px; color: #999;">暂无部门信息</div>
+          </div>`;
+      }
+    }
+
+    // 展开/收起部门
+    window.toggleDept = function(deptId) {
+      const usersDiv = document.getElementById(`users-${deptId}`);
+      const arrow = document.getElementById(`arrow-${deptId}`);
+      if (usersDiv.style.display === 'none') {
+        usersDiv.style.display = 'block';
+        arrow.style.transform = 'rotate(90deg)';
+      } else {
+        usersDiv.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+      }
+    };
+
+    // 发起聊天
+    window.startChat = function(userId, userName) {
+      if (userId === user._id) {
+        Utils.showToast('不能和自己聊天');
+        return;
+      }
+      sessionStorage.setItem('chatTarget', JSON.stringify({ id: userId, name: userName, type: 'private' }));
+      window.location.href = 'chat.html';
+    };
+
+    // 添加部门
+    document.getElementById('addBtn').addEventListener('click', () => {
+      document.getElementById('addDeptModal').style.display = 'flex';
+    });
+
+    document.getElementById('closeAddDeptModal').addEventListener('click', () => {
+      document.getElementById('addDeptModal').style.display = 'none';
+    });
+
+    document.getElementById('cancelAddDept').addEventListener('click', () => {
+      document.getElementById('addDeptModal').style.display = 'none';
+    });
+
+    document.getElementById('submitAddDept').addEventListener('click', () => {
+      const deptName = document.getElementById('newDeptName').value.trim();
+      if (!deptName) {
+        Utils.showToast('请输入部门名称');
+        return;
+      }
+      DB.departments.add({ name: deptName });
+      Utils.showToast('部门添加成功');
+      document.getElementById('newDeptName').value = '';
+      document.getElementById('addDeptModal').style.display = 'none';
+      loadDepartments();
+    });
+
+    // 添加员工
+    window.addEmployee = function(deptName) {
+      document.getElementById('newEmpDepartment').innerHTML = '';
+      const select = document.getElementById('newEmpDepartment');
+      DB.departments.getAll().forEach(d => {
+        const option = document.createElement('option');
+        option.value = d.name;
+        option.textContent = d.name;
+        if (d.name === deptName) option.selected = true;
+        select.appendChild(option);
+      });
+      document.getElementById('addEmpModal').style.display = 'flex';
+    };
+
+    document.getElementById('closeAddEmpModal').addEventListener('click', () => {
+      document.getElementById('addEmpModal').style.display = 'none';
+    });
+
+    document.getElementById('cancelAddEmp').addEventListener('click', () => {
+      document.getElementById('addEmpModal').style.display = 'none';
+    });
+
+    document.getElementById('submitAddEmp').addEventListener('click', () => {
+      const username = document.getElementById('newEmpUsername').value.trim();
+      const password = document.getElementById('newEmpPassword').value;
+      const name = document.getElementById('newEmpName').value.trim();
+      const department = document.getElementById('newEmpDepartment').value;
+      const role = document.getElementById('newEmpRole').value;
+
+      if (!username) {
+        Utils.showToast('请输入账号');
+        return;
+      }
+      if (!password) {
+        Utils.showToast('请输入密码');
+        return;
+      }
+      if (!name) {
+        Utils.showToast('请输入姓名');
+        return;
+      }
+
+      const existing = DB.users.getByUsername(username);
+      if (existing) {
+        Utils.showToast('账号已存在');
+        return;
+      }
+
+      DB.users.add({
+        username,
+        password,
+        name,
+        department,
+        role: role,
+        roleName: role === 'dept_admin' ? '部门管理员' : '普通员工'
+      });
+
+      Utils.showToast('员工添加成功');
+      document.getElementById('newEmpUsername').value = '';
+      document.getElementById('newEmpPassword').value = '';
+      document.getElementById('newEmpName').value = '';
+      document.getElementById('addEmpModal').style.display = 'none';
+      loadDepartments();
+    });
+
+    loadDepartments();
+  </script>
+</body>
+</html>

@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 考勤打卡</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <div class="page-title-bar">
+      <div class="page-title">考勤打卡</div>
+      <button class="header-action-btn" id="leaveBtn">请假</button>
+    </div>
+
+    <div class="checkin-section">
+      <div class="checkin-card">
+        <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;" id="checkinStatus">今日打卡</div>
+        <div style="font-size: 14px; color: #666; margin-bottom: 20px;" id="checkinDate">日期</div>
+        <button class="checkin-btn" id="checkinBtn">
+          <div style="font-size: 48px; margin-bottom: 8px;">📋</div>
+          <div style="font-size: 18px; font-weight: bold;" id="checkinBtnText">上班打卡</div>
+        </button>
+        <div style="display: flex; justify-content: space-around; margin-top: 20px; padding-top: 20px; border-top: 1px solid #f0f0f0;">
+          <div style="text-align: center;">
+            <div style="font-size: 13px; color: #999; margin-bottom: 4px;">上班</div>
+            <div style="font-size: 15px; font-weight: bold; color: #333;" id="checkInTime">--:--</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 13px; color: #999; margin-bottom: 4px;">下班</div>
+            <div style="font-size: 15px; font-weight: bold; color: #333;" id="checkOutTime">--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="action-btn primary" id="photoCheckinBtn">拍照打卡</button>
+        <input type="file" id="photoInput" accept="image/*" style="display: none;" />
+      </div>
+
+      <div class="records-section">
+        <div class="section-title" style="font-size: 16px; font-weight: bold; margin-bottom: 12px; padding: 0 15px;">打卡记录</div>
+        <div class="record-list" id="recordList">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar">
+    <a href="index.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">🏠</div>
+      <div style="font-size: 11px; margin-top: 2px;">工作台</div>
+    </a>
+    <a href="attendance.html" class="tab-item active">
+      <div style="font-size: 22px; line-height: 1;">📋</div>
+      <div style="font-size: 11px; margin-top: 2px;">考勤</div>
+    </a>
+    <a href="approval.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">✏️</div>
+      <div style="font-size: 11px; margin-top: 2px;">审批</div>
+    </a>
+    <a href="contacts.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">👥</div>
+      <div style="font-size: 11px; margin-top: 2px;">通讯录</div>
+    </a>
+    <a href="chat.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">💬</div>
+      <div style="font-size: 11px; margin-top: 2px;">消息</div>
+    </a>
+  </div>
+
+  <!-- 请假弹窗 -->
+  <div class="modal" id="leaveModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">请假申请</div>
+        <button class="modal-close" id="closeLeaveModal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">请假日期</label>
+        <input type="date" id="leaveDate" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">请假类型</label>
+        <select id="leaveType" class="form-select">
+          <option value="">请选择</option>
+          <option value="事假">事假</option>
+          <option value="病假">病假</option>
+          <option value="年假">年假</option>
+          <option value="调休">调休</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">请假原因</label>
+        <textarea id="leaveReason" class="form-input" rows="3" placeholder="请输入请假原因"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelLeaveBtn">取消</button>
+        <button class="btn-primary" id="submitLeaveBtn">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!Session.isLoggedIn()) {
+      window.location.href = 'login.html';
+    }
+
+    const user = Session.getCurrentUser();
+    let hasCheckedIn = false;
+    let hasCheckedOut = false;
+
+    // 显示日期
+    document.getElementById('checkinDate').textContent = Utils.getTodayDate();
+
+    // 加载今日打卡状态
+    function loadTodayStatus() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const records = DB.clock.getByUserId(user._id);
+      const todayRecords = records.filter(r => {
+        const rDate = new Date(r.createTime);
+        return rDate >= today && rDate <= endOfDay;
+      });
+
+      todayRecords.forEach(r => {
+        if (r.type === 'checkin' || r.type === 'manual') {
+          hasCheckedIn = true;
+          document.getElementById('checkInTime').textContent = Utils.formatTime(r.createTime);
+        } else if (r.type === 'checkout') {
+          hasCheckedOut = true;
+          document.getElementById('checkOutTime').textContent = Utils.formatTime(r.createTime);
+        } else if (r.type === 'photo') {
+          if (!hasCheckedIn) {
+            hasCheckedIn = true;
+            document.getElementById('checkInTime').textContent = Utils.formatTime(r.createTime);
+          }
+        }
+      });
+
+      updateCheckinButton();
+    }
+
+    function updateCheckinButton() {
+      const btnText = document.getElementById('checkinBtnText');
+      if (!hasCheckedIn) {
+        btnText.textContent = '上班打卡';
+      } else if (!hasCheckedOut) {
+        btnText.textContent = '下班打卡';
+      } else {
+        btnText.textContent = '今日已完成';
+      }
+    }
+
+    // 打卡按钮
+    document.getElementById('checkinBtn').addEventListener('click', () => {
+      if (hasCheckedIn && hasCheckedOut) {
+        Utils.showToast('今日已完成打卡');
+        return;
+      }
+
+      const type = !hasCheckedIn ? 'checkin' : 'checkout';
+      DB.clock.add({
+        userId: user._id,
+        userName: user.name,
+        department: user.department,
+        type: type,
+        location: '办公室',
+        isLeave: false
+      });
+
+      if (type === 'checkin') {
+        hasCheckedIn = true;
+        document.getElementById('checkInTime').textContent = Utils.formatTime(new Date());
+      } else {
+        hasCheckedOut = true;
+        document.getElementById('checkOutTime').textContent = Utils.formatTime(new Date());
+      }
+
+      Utils.showToast(type === 'checkin' ? '上班打卡成功' : '下班打卡成功');
+      updateCheckinButton();
+      loadRecords();
+    });
+
+    // 拍照打卡
+    document.getElementById('photoCheckinBtn').addEventListener('click', () => {
+      document.getElementById('photoInput').click();
+    });
+
+    document.getElementById('photoInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        Utils.fileToBase64(file).then(base64 => {
+          DB.clock.add({
+            userId: user._id,
+            userName: user.name,
+            department: user.department,
+            type: 'photo',
+            location: '办公室',
+            photo: base64,
+            isLeave: false
+          });
+
+          if (!hasCheckedIn) {
+            hasCheckedIn = true;
+            document.getElementById('checkInTime').textContent = Utils.formatTime(new Date());
+          }
+
+          Utils.showToast('拍照打卡成功');
+          updateCheckinButton();
+          loadRecords();
+        });
+      }
+    });
+
+    // 加载打卡记录
+    function loadRecords() {
+      const records = user.role === 'employee'
+        ? DB.clock.getByUserId(user._id)
+        : DB.clock.getAll();
+
+      const listEl = document.getElementById('recordList');
+      if (records.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 30px 20px; text-align: center; border: 2px dashed #e8e8e8; border-radius: 8px; margin: 0 15px;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">📋</div>
+            <div style="font-size: 14px; color: #999;">暂无打卡记录</div>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = records.slice(0, 20).map(r => {
+        let icon = '📋';
+        let title = '手动打卡';
+        if (r.type === 'photo') {
+          icon = '📷';
+          title = '拍照打卡';
+        } else if (r.type === 'checkin') {
+          icon = '⬆️';
+          title = '上班打卡';
+        } else if (r.type === 'checkout') {
+          icon = '⬇️';
+          title = '下班打卡';
+        } else if (r.type === 'leave') {
+          icon = '🏖️';
+          title = `${r.leaveType || '请假'} - ${r.reason || ''}`;
+        }
+
+        return `
+          <div style="display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f0f0f0; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #e6f7ff; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">${icon}</div>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; font-weight: 500; color: #333; margin-bottom: 4px;">${user.role !== 'employee' ? r.userName + ' - ' : ''}${title}</div>
+              <div style="font-size: 12px; color: #999;">${Utils.formatDateTime(r.createTime)} · ${r.location || ''}</div>
+            </div>
+            ${r.photo ? `<img src="${r.photo}" style="width: 50px; height: 50px; border-radius: 4px; object-fit: cover;" />` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 请假弹窗
+    document.getElementById('leaveBtn').addEventListener('click', () => {
+      document.getElementById('leaveModal').style.display = 'flex';
+      document.getElementById('leaveDate').valueAsDate = new Date();
+    });
+
+    document.getElementById('closeLeaveModal').addEventListener('click', () => {
+      document.getElementById('leaveModal').style.display = 'none';
+    });
+
+    document.getElementById('cancelLeaveBtn').addEventListener('click', () => {
+      document.getElementById('leaveModal').style.display = 'none';
+    });
+
+    document.getElementById('submitLeaveBtn').addEventListener('click', () => {
+      const date = document.getElementById('leaveDate').value;
+      const type = document.getElementById('leaveType').value;
+      const reason = document.getElementById('leaveReason').value.trim();
+
+      if (!date) {
+        Utils.showToast('请选择日期');
+        return;
+      }
+      if (!type) {
+        Utils.showToast('请选择请假类型');
+        return;
+      }
+      if (!reason) {
+        Utils.showToast('请输入请假原因');
+        return;
+      }
+
+      DB.clock.add({
+        userId: user._id,
+        userName: user.name,
+        department: user.department,
+        type: 'leave',
+        leaveDate: date,
+        leaveType: type,
+        reason: reason,
+        isLeave: true,
+        location: ''
+      });
+
+      Utils.showToast('请假申请已提交');
+      document.getElementById('leaveModal').style.display = 'none';
+      document.getElementById('leaveReason').value = '';
+      loadRecords();
+    });
+
+    loadTodayStatus();
+    loadRecords();
+  </script>
+</body>
+</html>

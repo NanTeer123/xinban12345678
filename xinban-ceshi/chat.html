@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>鑫办 - 消息</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="app-container" id="mainContainer">
+    <!-- 会话列表视图 -->
+    <div id="conversationView">
+      <div class="page-title-bar">
+        <div class="page-title">消息</div>
+      </div>
+      <div style="padding: 15px;" id="conversationList">
+      </div>
+    </div>
+
+    <!-- 聊天视图 -->
+    <div id="chatView" style="display: none; height: 100vh; flex-direction: column;">
+      <div style="background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%); padding: 15px; color: white; display: flex; align-items: center; gap: 12px;">
+        <button id="backBtn" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 6px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;">‹</button>
+        <div style="font-size: 16px; font-weight: bold;" id="chatTitle">聊天</div>
+      </div>
+
+      <div id="messageList" style="flex: 1; padding: 15px; overflow-y: auto; background: #f5f7fa;">
+      </div>
+
+      <div style="background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #e8e8e8;">
+        <button id="imageBtn" style="background: #f5f5f5; border: none; width: 40px; height: 40px; border-radius: 8px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;">📷</button>
+        <input type="file" id="imageInput" accept="image/*" style="display: none;" />
+        <input type="text" id="messageInput" class="form-input" placeholder="输入消息..." style="flex: 1; border: 1px solid #e8e8e8; border-radius: 20px; padding: 10px 16px; font-size: 14px; outline: none; background: #fafafa;" />
+        <button id="sendBtn" style="background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-size: 14px; cursor: pointer;">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="tab-bar" id="tabBar" style="position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #e8e8e8;">
+    <a href="index.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">🏠</div>
+      <div style="font-size: 11px; margin-top: 2px;">工作台</div>
+    </a>
+    <a href="attendance.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">📋</div>
+      <div style="font-size: 11px; margin-top: 2px;">考勤</div>
+    </a>
+    <a href="approval.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">✏️</div>
+      <div style="font-size: 11px; margin-top: 2px;">审批</div>
+    </a>
+    <a href="contacts.html" class="tab-item">
+      <div style="font-size: 22px; line-height: 1;">👥</div>
+      <div style="font-size: 11px; margin-top: 2px;">通讯录</div>
+    </a>
+    <a href="chat.html" class="tab-item active">
+      <div style="font-size: 22px; line-height: 1;">💬</div>
+      <div style="font-size: 11px; margin-top: 2px;">消息</div>
+    </a>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!Session.isLoggedIn()) {
+      window.location.href = 'login.html';
+    }
+
+    const user = Session.getCurrentUser();
+    let currentChatId = null;
+    let currentChatName = '';
+    let currentChatType = 'group';
+
+    // 检查是否从通讯录进入
+    const chatTarget = sessionStorage.getItem('chatTarget');
+    if (chatTarget) {
+      const target = JSON.parse(chatTarget);
+      currentChatId = target.id;
+      currentChatName = target.name;
+      currentChatType = target.type || 'private';
+      sessionStorage.removeItem('chatTarget');
+      showChatView();
+    }
+
+    // 加载会话列表
+    function loadConversations() {
+      // 获取所有会话并按最后消息时间排序
+      const conversations = DB.conversations.getAll();
+      const allUsers = DB.users.getAll().filter(u => u._id !== user._id);
+
+      // 添加其他用户作为私聊会话
+      const userConversations = allUsers.map(u => {
+        const messages = DB.messages.getByRoom('private_' + user._id + '_' + u._id);
+        const messages2 = DB.messages.getByRoom('private_' + u._id + '_' + user._id);
+        const allMsgs = [...messages, ...messages2].sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+        const lastMsg = allMsgs.length > 0 ? allMsgs[allMsgs.length - 1] : null;
+
+        return {
+          _id: 'private_' + user._id + '_' + u._id,
+          name: u.name,
+          type: 'private',
+          lastMessage: lastMsg ? (lastMsg.content || '[图片]') : '开始聊天',
+          lastTime: lastMsg ? lastMsg.createTime : new Date().toISOString(),
+          avatar: u.name.charAt(0)
+        };
+      });
+
+      // 添加群聊会话
+      const groupConversations = conversations.map(c => {
+        const messages = DB.messages.getByRoom(c._id);
+        const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+        return {
+          ...c,
+          lastMessage: lastMsg ? (lastMsg.content || '[图片]') : c.lastMessage,
+          lastTime: lastMsg ? lastMsg.createTime : c.lastTime,
+          avatar: c.name.charAt(0)
+        };
+      });
+
+      const allConversations = [...groupConversations, ...userConversations]
+        .sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime));
+
+      const listEl = document.getElementById('conversationList');
+      if (allConversations.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center; border: 2px dashed #e8e8e8; border-radius: 8px; background: white;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">💬</div>
+            <div style="font-size: 14px; color: #999;">暂无消息</div>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = allConversations.map(c => `
+        <div onclick="openChat('${c._id}', '${c.name}', '${c.type}')" style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+          <div style="width: 50px; height: 50px; border-radius: 50%; background: ${c.type === 'group' ? 'linear-gradient(135deg, #52c41a, #389e0d)' : 'linear-gradient(135deg, #1890ff, #096dd9)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; font-weight: bold; flex-shrink: 0;">${c.avatar}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 15px; font-weight: bold; color: #333; margin-bottom: 4px;">${c.name}</div>
+            <div style="font-size: 13px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${c.lastMessage}</div>
+          </div>
+          <div style="font-size: 12px; color: #ccc;">${Utils.formatDate(c.lastTime)}</div>
+        </div>
+      `).join('');
+    }
+
+    // 打开聊天
+    window.openChat = function(chatId, chatName, type) {
+      currentChatId = chatId;
+      currentChatName = chatName;
+      currentChatType = type || 'group';
+      showChatView();
+    };
+
+    // 显示聊天视图
+    function showChatView() {
+      document.getElementById('conversationView').style.display = 'none';
+      document.getElementById('chatView').style.display = 'flex';
+      document.getElementById('tabBar').style.display = 'none';
+      document.getElementById('chatTitle').textContent = currentChatName;
+      loadMessages();
+    }
+
+    // 返回会话列表
+    document.getElementById('backBtn').addEventListener('click', () => {
+      document.getElementById('conversationView').style.display = 'block';
+      document.getElementById('chatView').style.display = 'none';
+      document.getElementById('tabBar').style.display = 'flex';
+      currentChatId = null;
+      loadConversations();
+    });
+
+    // 加载消息
+    function loadMessages() {
+      if (!currentChatId) return;
+
+      let messages = DB.messages.getByRoom(currentChatId);
+
+      // 如果是私聊，可能需要双向读取
+      if (currentChatType === 'private') {
+        const parts = currentChatId.replace('private_', '').split('_');
+        if (parts.length >= 2) {
+          const reverseRoomId = 'private_' + parts[1] + '_' + parts[0];
+          const reverseMessages = DB.messages.getByRoom(reverseRoomId);
+          messages = [...messages, ...reverseMessages];
+        }
+      }
+
+      messages.sort((a, b) => new Date(a.createTime) - new Date(b.createTime));
+
+      const listEl = document.getElementById('messageList');
+      if (messages.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 8px; opacity: 0.5;">💬</div>
+            <div style="font-size: 14px; color: #999;">暂无消息，开始聊天吧</div>
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = messages.map(msg => {
+        const isSelf = msg.senderId === user._id;
+        return `
+          <div style="display: flex; align-items: flex-end; gap: 8px; margin-bottom: 15px; ${isSelf ? 'flex-direction: row-reverse;' : ''}">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: ${isSelf ? 'linear-gradient(135deg, #52c41a, #389e0d)' : 'linear-gradient(135deg, #1890ff, #096dd9)'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; font-weight: bold; flex-shrink: 0;">${msg.senderName ? msg.senderName.charAt(0) : '?'}</div>
+            <div style="${isSelf ? 'background: #1890ff; color: white;' : 'background: white; color: #333;'} padding: 10px 14px; border-radius: 12px; max-width: 70%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+              ${msg.content ? `<div style="font-size: 14px; line-height: 1.5; word-break: break-word;">${msg.content}</div>` : ''}
+              ${msg.image ? `<img src="${msg.image}" style="max-width: 200px; border-radius: 8px; display: block; margin-top: 6px;" />` : ''}
+              <div style="font-size: 11px; opacity: 0.7; margin-top: 6px; text-align: right;">${Utils.formatTime(msg.createTime)}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 滚动到底部
+      listEl.scrollTop = listEl.scrollHeight;
+    }
+
+    // 发送消息
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const content = input.value.trim();
+      if (!content) {
+        return;
+      }
+
+      DB.messages.add(currentChatId, {
+        senderId: user._id,
+        senderName: user.name,
+        content: content
+      });
+
+      input.value = '';
+      loadMessages();
+    }
+
+    // 发送图片
+    document.getElementById('imageBtn').addEventListener('click', () => {
+      document.getElementById('imageInput').click();
+    });
+
+    document.getElementById('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        Utils.fileToBase64(file).then(base64 => {
+          DB.messages.add(currentChatId, {
+            senderId: user._id,
+            senderName: user.name,
+            image: base64,
+            content: ''
+          });
+          loadMessages();
+        });
+      }
+    });
+
+    loadConversations();
+  </script>
+</body>
+</html>
