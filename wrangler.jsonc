@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xinban12345678",
+  "compatibility_date": "2026-06-24",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "xinban-ceshi"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}
