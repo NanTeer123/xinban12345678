@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>鑫办 - 工作台</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1890ff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="鑫办">
+  <link rel="apple-touch-icon" href="images/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="images/icons/icon-512.png">
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -222,6 +230,19 @@
 
     loadStats();
     loadNotices();
+
+    // PWA Service Worker 注册
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+          .then(function(reg) {
+            console.log('[PWA] Service Worker 注册成功:', reg.scope);
+          })
+          .catch(function(err) {
+            console.log('[PWA] Service Worker 注册失败:', err);
+          });
+      });
+    }
   </script>
 </body>
 </html>
